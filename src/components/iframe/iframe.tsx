@@ -70,6 +70,8 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
   const isVertical = React.useMemo(() => consoleDock === 'bottom', [consoleDock]);
   const isReversed = React.useMemo(() => consoleDock === 'left', [consoleDock]);
 
+  // console.log(consoleMessageHistory.current);
+
   const reloadDevtool = React.useCallback(
     (force = false) => {
       if (force && devtoolsRef.current) {
@@ -192,14 +194,22 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       }
     };
 
+    const handleColorChange = (color: string) => {
+      document.documentElement.style.setProperty('--primary', color);
+      document.cookie = `__color=${color};path=/`;
+      iframeRef.current?.contentWindow?.postMessage({ type: 'color:change', data: color }, '*');
+    };
+
     eventEmitter.on('load:frame', handleUrlSubmit);
     eventEmitter.on('refresh:frame', refreshFrame);
     eventEmitter.on('setting:toggle', handleSettingToggle);
+    eventEmitter.on('color:change', handleColorChange);
 
     return () => {
       eventEmitter.removeListener('load:frame', handleUrlSubmit);
       eventEmitter.removeListener('refresh:frame', refreshFrame);
       eventEmitter.removeListener('setting:toggle', handleSettingToggle);
+      eventEmitter.removeListener('color:change', handleColorChange);
       window.removeEventListener('message', listener);
     };
   }, [refreshFrame, submittedUrl, reloadDevtool, setIsIframeLoaded]);

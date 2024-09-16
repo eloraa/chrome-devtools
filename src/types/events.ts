@@ -4,4 +4,5 @@ export type Emitter = EventEmitter<{
   'load:frame': [string];
   'refresh:frame': [];
   'setting:toggle': [boolean];
+  'color:change': [string];
 }>;

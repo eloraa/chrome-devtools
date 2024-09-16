@@ -10,6 +10,8 @@ type UIStore = Pick<UIState, 'settingState' | 'devtoolsState' | 'consoleDock' | 
   setUrl: (url: string) => void;
   isIframeLoaded: boolean;
   setIsIframeLoaded: (loaded: boolean) => void;
+  color: string;
+  setColor: (color: string) => void;
 };
 
 const createUIStore: StateCreator<UIStore> = set => ({
@@ -25,6 +27,8 @@ const createUIStore: StateCreator<UIStore> = set => ({
   setUrl: (url: string) => set({ url: url }),
   isIframeLoaded: false,
   setIsIframeLoaded: (loaded: boolean) => set({ isIframeLoaded: loaded }),
+  color: '',
+  setColor: (color: string) => set({ color: color }),
 });
 
 const UIStoreBase = create<UIStore>()(createUIStore);
