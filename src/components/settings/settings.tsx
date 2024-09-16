@@ -8,9 +8,11 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '../drawer/draw
 import { Button } from '../button/button';
 import { Toggle } from '../toggle/toggle';
 import { Globe, Terminal } from 'lucide-react';
+import { Dropdown, Option } from '../dropdown/dropdown';
+import { UIState } from '@/types/ui';
 
 export const Settings = () => {
-  const { settingState, setSettingState, proxyMode, setProxyMode } = UIStore();
+  const { settingState, setSettingState, proxyMode, setProxyMode, consoleDock, setConsoleDock } = UIStore();
   const handleOpenChange = (open: boolean) => {
     setSettingState(open);
     eventEmitter.emit('setting:toggle', open);
@@ -19,6 +21,12 @@ export const Settings = () => {
   type State = 'general' | 'appearance' | 'about';
 
   const [state, setState] = React.useState<State>('general');
+
+  const handleDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value as UIState['consoleDock'];
+    setConsoleDock(value);
+    document.cookie = `dock:position=${value};path=/`;
+  };
 
   return (
     <Drawer open={settingState} onOpenChange={handleOpenChange}>
@@ -67,10 +75,16 @@ export const Settings = () => {
                   <div className="text-xs min-w-0 max-w-[80%]">
                     <h1 className="text-sm font-medium flex items-center gap-1">
                       <Terminal className="w-4 h-4 inline-block" />
-                      Default Console Position
+                      Console Position
                     </h1>
-                    <p>Default console position when opening the console.</p>
+                    <p>Console position when opening the console.</p>
                   </div>
+                  <Dropdown onChange={handleDropdownChange} value={consoleDock} className="w-28">
+                    <Option value="bottom">Bottom</Option>
+                    <Option value="left">Left</Option>
+                    <Option value="right">Right</Option>
+                    <Option value="popout">Popout</Option>
+                  </Dropdown>
                 </div>
               </div>
             )}
