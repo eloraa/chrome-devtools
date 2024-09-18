@@ -22,7 +22,7 @@ export default function DevtoolsPopup() {
         iframeRef.current.src = 'about:blank';
         setTimeout(() => {
           if (iframeRef.current) {
-            iframeRef.current.src = `http://localhost:3000/lib/devtools/elora-devtools#?embedded=${origin}`;
+            iframeRef.current.src = `/lib/devtools/elora-devtools#?embedded=${origin}`;
           }
         }, 100);
       }
@@ -54,7 +54,7 @@ export default function DevtoolsPopup() {
 
   return (
     <div className="p-0.5 fixed inset-0">
-      <iframe ref={iframeRef} className="w-full h-full" src={`http://localhost:3000/lib/devtools/elora-devtools#?embedded=${origin}`} onLoad={iframeLoad} />
+      <iframe ref={iframeRef} className="w-full h-full" src={`/lib/devtools/elora-devtools#?embedded=${origin}`} onLoad={iframeLoad} />
     </div>
   );
 }
