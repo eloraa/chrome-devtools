@@ -1,3 +1,4 @@
+import { COLORS } from '@/constant/colors';
 import { headers } from 'next/headers';
 import { ImageResponse } from 'next/og';
 
@@ -20,7 +21,7 @@ export default function Icon() {
       <div
         style={{
           fontSize: 24,
-          background: `hsl(${color?.split('=')[1]})`,
+          background: `hsl(${color?.split('=')[1] ?? COLORS[0]})`,
           width: '100%',
           height: '100%',
           display: 'flex',

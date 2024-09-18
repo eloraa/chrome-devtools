@@ -117,7 +117,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       if (realoadDevtool) {
         reloadDevtool(true);
 
-        if (pipWindow) {
+        if (pipWindow && popupType === 'pip') {
           const iframe = pipWindow.document.querySelector('iframe') as HTMLIFrameElement;
 
           console.log(pipWindow, 'pipWindow');
@@ -131,9 +131,10 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
           }, 100);
         }
       }
+
       setIsIframeLoaded(false);
     },
-    [submittedUrl, reloadDevtool, setIsIframeLoaded, pipWindow, origin]
+    [submittedUrl, reloadDevtool, setIsIframeLoaded, pipWindow, origin, popupType]
   );
 
   React.useEffect(() => {
@@ -290,7 +291,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       eventEmitter.removeListener('color:change', handleColorChange);
       window.removeEventListener('message', listener);
     };
-  }, [refreshFrame, submittedUrl, reloadDevtool, setIsIframeLoaded, setProxyState, setDocsState, setDevtoolsState, setColor]);
+  }, [refreshFrame, submittedUrl, reloadDevtool, setIsIframeLoaded, setProxyState, setDocsState, setDevtoolsState, setColor, pipWindow]);
 
   const onDrag = React.useCallback(
     (isDragging: boolean) => {
@@ -332,25 +333,50 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
 
   const [isPopup, setIsPopup] = React.useState(false);
   const [isSetPipEvent, setIsSetPipEvent] = React.useState(false);
+  const previousPopupType = React.useRef<UIState['popupType'] | null>(null);
+  const isManuallyClosingRef = React.useRef(false);
+  const [closingTimeout, setClosingTimeout] = React.useState<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
-    if (!devtoolsState || consoleDock !== 'popout') {
+    if (iframeRef.current) {
+      iframeRef.current.contentWindow?.postMessage({ type: 'devtools:toggle', data: devtoolsState }, '*');
+    }
+    if ((!devtoolsState || consoleDock !== 'popout') && !isManuallyClosingRef.current) {
       popupWindow.current?.close();
-      setIsPopup(false);
+      previousPopupType.current = null;
       return;
     }
+
+    // i'm not using this isPopup variable but i'm not sure why pip window refusing to function properly if i remove it. so i'm keeping it. i'm tired lol.
     setIsPopup(true);
-    if (isPopup) return;
     const listener = (e: MessageEvent) => {
       if (e.data.type === 'TO_DEVTOOLS') {
         if (popupWindow.current) {
           popupWindow.current.window.postMessage({ type: 'TO_DEVTOOLS', data: e.data.data }, '*');
         }
       }
+      if (e.data.type === 'IFRAME_LOADED') {
+        onload();
+      }
+      if (e.data.type === 'UNLOAD_DEVTOOLS') {
+        if (!isManuallyClosingRef.current) {
+          setDevtoolsState(false);
+        }
+      }
+    };
+
+    const onload = () => {
+      setTimeout(() => {
+        consoleMessageHistory.current.forEach(data => {
+          if (popupWindow.current) {
+            popupWindow.current.window.postMessage({ type: 'TO_DEVTOOLS', data: data }, '*');
+          }
+        });
+      }, 500);
     };
 
     const pageHide = () => {
-      setIsPopup(false);
+      previousPopupType.current = null;
       setPipWindow(null);
       setDevtoolsState(false);
     };
@@ -391,8 +417,26 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       });
     };
 
+    const refreshPopup = () => {
+      if (popupWindow.current) {
+        popupWindow.current.postMessage({ type: 'RELOAD_DEVTOOLS' }, '*');
+      }
+    };
+
     const createPopup = async () => {
       if (consoleDock === 'popout') {
+        if (popupWindow.current && previousPopupType.current !== popupType) {
+          console.log('closing');
+          isManuallyClosingRef.current = true;
+          popupWindow.current.close();
+          closingTimeout && clearTimeout(closingTimeout);
+          setClosingTimeout(
+            setTimeout(() => {
+              isManuallyClosingRef.current = false;
+            }, 1000)
+          );
+        }
+
         popupWindow.current = await requestPopup('/lib/devtools-popup', popupType, color);
         if (popupType === 'pip') popupWindow.current?.addEventListener('pagehide', pageHide);
 
@@ -408,16 +452,23 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
         }
 
         window.addEventListener('message', listener);
+        if (popupType !== 'pip') {
+          eventEmitter.on('refresh:frame', refreshPopup);
+        }
       }
     };
 
-    createPopup();
+    if (previousPopupType.current !== popupType) {
+      createPopup();
+      previousPopupType.current = popupType;
+    }
 
     return () => {
       popupWindow.current?.removeEventListener('pagehide', pageHide);
       window.removeEventListener('message', listener);
+      eventEmitter.removeListener('refresh:frame', refreshPopup);
     };
-  }, [consoleDock, submittedUrl, color, origin, isPopup, devtoolsState, popupType, setDevtoolsState, isSetPipEvent]);
+  }, [consoleDock, submittedUrl, color, origin, isPopup, devtoolsState, popupType, setDevtoolsState, isSetPipEvent, closingTimeout]);
 
   const panelOrder = React.useMemo(() => {
     const mainPanelElement = (

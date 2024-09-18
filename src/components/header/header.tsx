@@ -13,19 +13,35 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../dropd
 import { UIStore } from '@/store';
 import { eventEmitter } from '@/lib/utils';
 import { useBreakpoints } from '@/lib/hooks';
+import { isMacOS } from '@/lib/utils';
 
 export const Header = () => {
-  const { setSettingState, setDevtoolsState, devtoolsState, proxyState, setProxyState } = UIStore();
+  const { setSettingState, setDevtoolsState, devtoolsState, proxyState, setProxyState, consoleDock, setPopupType, setConsoleDock } = UIStore();
   const breakpoint = useBreakpoints();
+
+  const handleDevtoolsClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      setDevtoolsState(!devtoolsState);
+      setConsoleDock('popout');
+      setPopupType('popup');
+    } else {
+      setDevtoolsState(!devtoolsState);
+      setConsoleDock('popout');
+      setPopupType('pip');
+    }
+  };
 
   return (
     <header className="py-1 bg-white text-foreground">
       <div className="container flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Dropdown>
-            <Button variant="ghost" asChild className="p-0 w-6 h-6 text-foreground">
+            <Button variant="ghost" asChild className="p-0 w-10 h-6 text-foreground">
               <Link href="/">
                 <Logo />
+                <span className="w-5 h-5 inline-flex">
+                  <ChevronDown />
+                </span>
               </Link>
             </Button>
           </Dropdown>
@@ -90,17 +106,17 @@ export const Header = () => {
             </div>
             <Tooltip delayDuration={100}>
               <TooltipTrigger asChild>
-                <Button variant="ghost" className="w-6 h-6 p-1 text-foreground">
+                <Button onClick={handleDevtoolsClick} variant={consoleDock === 'popout' && devtoolsState ? 'default' : 'ghost'} className="w-6 h-6 p-1 text-foreground">
                   <PictureInPicture2 />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <h1>Open in a new tab</h1>
+                <h1>Open in a popup</h1>
                 <p>
                   Or use{' '}
                   <span className="inline-flex items-center gap-1">
-                    <Kbd>Ctrl</Kbd>
-                    <Kbd>Click</Kbd> to open in a popup
+                    <Kbd>{isMacOS() ? '⌘' : 'Ctrl'}</Kbd>
+                    <Kbd>Click</Kbd> to open in new tab
                   </span>
                 </p>
               </TooltipContent>

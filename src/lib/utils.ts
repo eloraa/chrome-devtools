@@ -215,3 +215,7 @@ export const requestPopup = (url: string, type: 'popup' | 'tab' | 'pip', color: 
       return null;
   }
 };
+
+export function isMacOS(): boolean {
+  return /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+}

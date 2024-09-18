@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../popover/popover';
 import { DropdownMenuItem, DropdownMenuSeparator } from '../dropdown-menu/dropdown-menu';
-import { PanelBottom, PanelLeft, PanelRight, PanelRightDashed } from 'lucide-react';
+import { AppWindow, ExternalLink, PanelBottom, PanelLeft, PanelRight, PanelRightDashed } from 'lucide-react';
 import { useBreakpoints } from '@/lib/hooks';
 import { UIStore } from '@/store';
 import { cls } from '@/lib/utils';
@@ -19,7 +19,7 @@ type DevtoolsPopupProps = {
 
 const DevtoolsPopup: React.FC<DevtoolsPopupProps> = ({ open, children, popoverRef, handleMouseEnter, handleMouseLeave, Wrapper, WrapperProps }) => {
   const breakpoint = useBreakpoints();
-  const { consoleDock, setConsoleDock, devtoolsState, setDevtoolsState, setPopupType } = UIStore();
+  const { consoleDock, setConsoleDock, devtoolsState, setDevtoolsState, setPopupType, popupType } = UIStore();
 
   const content = (
     <>
@@ -63,10 +63,32 @@ const DevtoolsPopup: React.FC<DevtoolsPopupProps> = ({ open, children, popoverRe
           setPopupType('pip');
           !devtoolsState && setDevtoolsState(true);
         }}
-        className={cls(devtoolsState && consoleDock === 'popout' && 'bg-primary/20')}
+        className={cls(devtoolsState && consoleDock === 'popout' && popupType === 'pip' && 'bg-primary/20')}
       >
         <PanelRightDashed className="mr-2 h-4 w-4" />
         <span>Unlock into popout</span>
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onClick={() => {
+          setConsoleDock('popout');
+          setPopupType('popup');
+          !devtoolsState && setDevtoolsState(true);
+        }}
+        className={cls(devtoolsState && consoleDock === 'popout' && popupType === 'popup' && 'bg-primary/20')}
+      >
+        <ExternalLink className="mr-2 h-4 w-4" />
+        <span>Open in a popup</span>
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onClick={() => {
+          setConsoleDock('popout');
+          setPopupType('tab');
+          !devtoolsState && setDevtoolsState(true);
+        }}
+        className={cls(devtoolsState && consoleDock === 'popout' && popupType === 'tab' && 'bg-primary/20')}
+      >
+        <AppWindow className="mr-2 h-4 w-4" />
+        <span>Open in new tab</span>
       </DropdownMenuItem>
     </>
   );

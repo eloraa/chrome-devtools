@@ -33,9 +33,18 @@ export default function DevtoolsPopup() {
         }
       }
     };
+
+    const beforeUnload = () => {
+      window.opener.postMessage({ type: 'UNLOAD_DEVTOOLS' }, '*');
+      window.removeEventListener('message', listener);
+      window.removeEventListener('beforeunload', beforeUnload);
+    };
+
     window.addEventListener('message', listener);
+    window.addEventListener('beforeunload', beforeUnload);
     return () => {
       window.removeEventListener('message', listener);
+      window.removeEventListener('beforeunload', beforeUnload);
     };
   }, [origin]);
 
