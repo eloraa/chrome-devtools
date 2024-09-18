@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { cls } from '@/lib/utils';
+import { cls, eventEmitter } from '@/lib/utils';
 import { UIStore } from '@/store';
 
 interface WrapperProps {
@@ -27,12 +27,13 @@ export const Wrapper: React.FC<WrapperProps> = ({ children, color }) => {
     window.addEventListener('message', event => {
       if (event.data.type === 'color:change') {
         setColor(event.data.color);
+        eventEmitter.emit('color:change', event.data.color);
         document.documentElement.style.setProperty('--primary', event.data.color);
         document.cookie = `__color=${event.data.color};path=/`;
       }
     });
     setLoaded(true);
-  }, [settingState, setColor]);
+  }, [settingState, setColor, color]);
 
   if (!loaded || isIframe) {
     return null;

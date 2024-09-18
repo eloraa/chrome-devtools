@@ -2,7 +2,7 @@ import { create, type StateCreator } from 'zustand';
 import { createSelectors } from './selectors';
 import { UIState } from '@/types/ui';
 
-type UIStore = Pick<UIState, 'settingState' | 'devtoolsState' | 'consoleDock' | 'proxyState' | 'url' | 'isIframeLoaded' | 'color' | 'docsState'> & {
+type UIStore = Pick<UIState, 'settingState' | 'devtoolsState' | 'consoleDock' | 'proxyState' | 'url' | 'isIframeLoaded' | 'color' | 'docsState' | 'popupType'> & {
   setSettingState: (state: boolean) => void;
   setDevtoolsState: (state: boolean) => void;
   setConsoleDock: (dock: 'left' | 'right' | 'bottom' | 'popout') => void;
@@ -11,6 +11,7 @@ type UIStore = Pick<UIState, 'settingState' | 'devtoolsState' | 'consoleDock' | 
   setUrl: (url: string) => void;
   setIsIframeLoaded: (loaded: boolean) => void;
   setColor: (color: string) => void;
+  setPopupType: (type: 'popup' | 'tab' | 'pip') => void;
 };
 
 const createUIStore: StateCreator<UIStore> = set => ({
@@ -30,6 +31,8 @@ const createUIStore: StateCreator<UIStore> = set => ({
   setColor: (color: string) => set({ color: color }),
   docsState: false,
   setDocsState: (mode: boolean) => set({ docsState: mode }),
+  popupType: 'pip',
+  setPopupType: (type: 'popup' | 'tab' | 'pip') => set({ popupType: type }),
 });
 
 const UIStoreBase = create<UIStore>()(createUIStore);

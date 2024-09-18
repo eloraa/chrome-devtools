@@ -19,7 +19,7 @@ type DevtoolsPopupProps = {
 
 const DevtoolsPopup: React.FC<DevtoolsPopupProps> = ({ open, children, popoverRef, handleMouseEnter, handleMouseLeave, Wrapper, WrapperProps }) => {
   const breakpoint = useBreakpoints();
-  const { consoleDock, setConsoleDock, devtoolsState, setDevtoolsState } = UIStore();
+  const { consoleDock, setConsoleDock, devtoolsState, setDevtoolsState, setPopupType } = UIStore();
 
   const content = (
     <>
@@ -60,6 +60,7 @@ const DevtoolsPopup: React.FC<DevtoolsPopupProps> = ({ open, children, popoverRe
       <DropdownMenuItem
         onClick={() => {
           setConsoleDock('popout');
+          setPopupType('pip');
           !devtoolsState && setDevtoolsState(true);
         }}
         className={cls(devtoolsState && consoleDock === 'popout' && 'bg-primary/20')}

@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { cls, eventEmitter, formatLogs, isValidURL } from '@/lib/utils';
+import { cls, eventEmitter, formatLogs, isJson, isValidURL, requestPopup } from '@/lib/utils';
 import { UIStore } from '@/store';
 import { env } from '@/constant/env';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../resizable/resizable';
@@ -57,7 +57,7 @@ interface IframeProps {
 }
 
 export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayout = [75, 25], dockPosition = 'right' }) => {
-  const { setIsIframeLoaded, settingState, devtoolsState, setDevtoolsState, consoleDock, setConsoleDock, setProxyState, setDocsState, setColor } = UIStore();
+  const { setIsIframeLoaded, settingState, devtoolsState, setDevtoolsState, consoleDock, setConsoleDock, setProxyState, setDocsState, setColor, color, popupType } = UIStore();
   const [submittedUrl, setSubmittedUrl] = React.useState('');
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const devtoolsRef = React.useRef<HTMLIFrameElement>(null);
@@ -67,6 +67,9 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
   const [isMainIframeLoaded, setIsMainIframeLoaded] = React.useState(false);
   const [layout, setLayout] = React.useState(defaultlayout);
   const [isDragging, setIsDragging] = React.useState(false);
+  const popupWindow = React.useRef<Window | null | undefined>(null);
+
+  const [pipWindow, setPipWindow] = React.useState<Window | null | undefined>(null);
 
   const isVertical = React.useMemo(() => consoleDock === 'bottom', [consoleDock]);
   const isReversed = React.useMemo(() => consoleDock === 'left', [consoleDock]);
@@ -96,15 +99,6 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
     [origin]
   );
 
-  const isJson = (data: string) => {
-    try {
-      JSON.parse(data);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-
   type Methods = 'Runtime.consoleAPICalled' | 'Runtime.enable' | 'Runtime.discardConsoleEntries' | 'Unknown';
 
   type Return = { method?: Methods; data: string };
@@ -122,10 +116,24 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       }
       if (realoadDevtool) {
         reloadDevtool(true);
+
+        if (pipWindow) {
+          const iframe = pipWindow.document.querySelector('iframe') as HTMLIFrameElement;
+
+          console.log(pipWindow, 'pipWindow');
+          console.log(iframe, 'iframe');
+
+          iframe.src = 'about:blank';
+          setTimeout(() => {
+            if (iframe) {
+              iframe.src = `/lib/devtools/elora-devtools#?embedded=${origin}`;
+            }
+          }, 100);
+        }
       }
       setIsIframeLoaded(false);
     },
-    [submittedUrl, reloadDevtool, setIsIframeLoaded]
+    [submittedUrl, reloadDevtool, setIsIframeLoaded, pipWindow, origin]
   );
 
   React.useEffect(() => {
@@ -265,6 +273,9 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       document.documentElement.style.setProperty('--primary', color);
       document.cookie = `__color=${color};path=/`;
       iframeRef.current?.contentWindow?.postMessage({ type: 'color:change', data: color }, '*');
+      if (pipWindow) {
+        pipWindow.document.documentElement.style.setProperty('--primary', color);
+      }
     };
 
     eventEmitter.on('load:frame', handleUrlSubmit);
@@ -289,7 +300,6 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
 
         if (devtoolsPanel?.offsetWidth && devtoolsPanel.offsetWidth < 100) {
           setDevtoolsState(false);
-          console.log(devtoolsPanel?.offsetWidth);
           devtoolsPanelRef.current?.resize(0);
         }
       }
@@ -308,7 +318,6 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
 
       if (!isDragging) {
         if ((devtoolsPanelWidth && devtoolsPanelWidth < 100) || devtoolsPanelLayout < 25 || !devtoolsPanelLayout) {
-          console.log(devtoolsPanelWidth);
           devtoolsPanelRef.current?.resize(25);
         }
       }
@@ -320,6 +329,95 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       setConsoleDock(dockPosition);
     }
   }, [dockPosition, setConsoleDock]);
+
+  const [isPopup, setIsPopup] = React.useState(false);
+  const [isSetPipEvent, setIsSetPipEvent] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!devtoolsState || consoleDock !== 'popout') {
+      popupWindow.current?.close();
+      setIsPopup(false);
+      return;
+    }
+    setIsPopup(true);
+    if (isPopup) return;
+    const listener = (e: MessageEvent) => {
+      if (e.data.type === 'TO_DEVTOOLS') {
+        if (popupWindow.current) {
+          popupWindow.current.window.postMessage({ type: 'TO_DEVTOOLS', data: e.data.data }, '*');
+        }
+      }
+    };
+
+    const pageHide = () => {
+      setIsPopup(false);
+      setPipWindow(null);
+      setDevtoolsState(false);
+    };
+
+    const pipListener = (e?: Event & { window: Window }) => {
+      const pipWindow = e ? e.window : popupWindow.current?.window;
+      const pipDocument = pipWindow?.document as Document;
+      setPipWindow(pipWindow);
+
+      pipDocument.body.innerHTML = '';
+      pipWindow?.document && (pipWindow.document.body.innerHTML = '');
+      console.log('pipDocument', pipDocument);
+
+      const iframe = document.createElement('iframe');
+      iframe.src = `/lib/devtools/elora-devtools#?embedded=${origin}`;
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      pipDocument.body.appendChild(iframe);
+
+      iframe?.addEventListener('load', () => {
+        setTimeout(() => {
+          consoleMessageHistory.current.forEach(data => {
+            if (iframe) {
+              iframe.contentWindow?.postMessage(data, '*');
+            }
+          });
+        }, 500);
+      });
+      pipWindow?.addEventListener('message', event => {
+        if (event.data.type === 'TO_DEVTOOLS') {
+          iframe.contentWindow?.postMessage(event.data.data, '*');
+        }
+        if (typeof event.data !== 'object' && event.data.type !== 'TO_DEVTOOLS') {
+          if (typeof event.data === 'string' && event.data.includes('"id"') && isJson(event.data)) {
+            pipWindow.opener.postMessage(event.data, '*');
+          }
+        }
+      });
+    };
+
+    const createPopup = async () => {
+      if (consoleDock === 'popout') {
+        popupWindow.current = await requestPopup('/lib/devtools-popup', popupType, color);
+        if (popupType === 'pip') popupWindow.current?.addEventListener('pagehide', pageHide);
+
+        if ('documentPictureInPicture' in window && !isSetPipEvent && popupType === 'pip') {
+          setIsSetPipEvent(true);
+          pipListener();
+          (
+            window.documentPictureInPicture as {
+              addEventListener: (event: string, listener: () => void) => void;
+              removeEventListener: (event: string, listener: () => void) => void;
+            }
+          ).addEventListener('enter', pipListener);
+        }
+
+        window.addEventListener('message', listener);
+      }
+    };
+
+    createPopup();
+
+    return () => {
+      popupWindow.current?.removeEventListener('pagehide', pageHide);
+      window.removeEventListener('message', listener);
+    };
+  }, [consoleDock, submittedUrl, color, origin, isPopup, devtoolsState, popupType, setDevtoolsState, isSetPipEvent]);
 
   const panelOrder = React.useMemo(() => {
     const mainPanelElement = (
@@ -344,7 +442,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
     const panels = [mainPanelElement, handleElement, devtoolsPanelElement].filter(Boolean);
 
     return isReversed ? panels.reverse() : panels;
-  }, [isReversed, devtoolsState, submittedUrl, notFound, layout, isMainIframeLoaded, origin, setIsIframeLoaded, onDrag]);
+  }, [isReversed, devtoolsState, submittedUrl, notFound, layout, isMainIframeLoaded, origin, setIsIframeLoaded, onDrag, consoleDock]);
 
   return (
     <div className="h-full w-full">

@@ -61,6 +61,15 @@ export function getStackTrace(): StackTrace {
   }
 }
 
+export const isJson = (data: string) => {
+  try {
+    JSON.parse(data);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
 export function formatLogs(type: LogType, args: unknown[], stackTrace: StackTrace | null = null): string {
   const logParams: ConsoleLogParams = {
     type: type,
@@ -106,4 +115,103 @@ export const adjustHSL = (hsl: string, lightnessAdjustment: number, hueAdjustmen
   }
 
   return `${Math.round(hue)} ${Math.round(saturation)}% ${lightness.toFixed(2)}%`;
+};
+
+const style = typeof document !== 'undefined' ? document.createElement('style') : null;
+style &&
+  (style.textContent = `
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: 0;
+}
+html,
+body {
+  height: 100%;
+  width: 100%;
+  background-color: hsl(var(--primary));
+  padding: 2px;
+}
+`);
+
+const openPopup = (url: string) => {
+  const screenTop = window.screenTop ?? window.screenY;
+
+  const width = window.innerWidth ?? document.documentElement.clientWidth ?? screen.width;
+  const height = window.innerHeight ?? document.documentElement.clientHeight ?? screen.height;
+
+  const popupWidth = 500;
+  const popupHeight = height - 20;
+
+  const left = width - popupWidth;
+  const top = (height - 650) / 2 / screenTop;
+
+  const features = `width=${popupWidth},height=${popupHeight},left=${left},top=${top}`;
+  const popup = window.open(url, '_blank', features);
+  if (popup) {
+    popup.focus();
+
+    eventEmitter.on('color:change', (color: string) => {
+      popup.document.documentElement.style.setProperty('--primary', color);
+    });
+  }
+
+  return popup;
+};
+
+const newTab = (url: string) => {
+  const tab = window.open(url, '_blank');
+  if (tab) {
+    tab.focus();
+
+    eventEmitter.on('color:change', (color: string) => {
+      tab.document.documentElement.style.setProperty('--primary', color);
+    });
+  }
+  return tab;
+};
+
+const pip = async (url: string, color: string) => {
+  const height = window.innerHeight ?? document.documentElement.clientHeight ?? screen.height;
+  const title = 'Elora Devtools';
+
+  try {
+    const pipWindow = await (
+      window as Window & typeof globalThis & { documentPictureInPicture: { requestWindow: (options: { width: number; height: number }) => Promise<Window> } }
+    ).documentPictureInPicture.requestWindow({
+      width: 400,
+      height: height - 40,
+    });
+
+    if (style) pipWindow.document.head.appendChild(style);
+    // if (script) pipWindow.document.head.appendChild(script);
+    pipWindow.document.title = title;
+    pipWindow.document.documentElement.style.setProperty('--primary', color);
+
+    eventEmitter.on('color:change', (color: string) => {
+      pipWindow.document.documentElement.style.setProperty('--primary', color);
+    });
+
+    return pipWindow;
+  } catch (error) {
+    console.error('Error entering Picture-in-Picture:', error);
+  }
+};
+
+export const requestPopup = (url: string, type: 'popup' | 'tab' | 'pip', color: string) => {
+  switch (type) {
+    case 'popup':
+      return openPopup(url);
+    case 'tab':
+      return newTab(url);
+    case 'pip':
+      if ('documentPictureInPicture' in window) {
+        return pip(url, color);
+      }
+      return openPopup(url);
+    default:
+      return null;
+  }
 };
