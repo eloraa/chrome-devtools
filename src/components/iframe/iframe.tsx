@@ -1,12 +1,13 @@
 'use client';
 import * as React from 'react';
-import { cls, eventEmitter, isValidURL } from '@/lib/utils';
+import { cls, eventEmitter, formatLogs, isValidURL } from '@/lib/utils';
 import { UIStore } from '@/store';
 import { env } from '@/constant/env';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../resizable/resizable';
 import { Header } from '../header/header';
 import { getPanelElement, ImperativePanelHandle } from 'react-resizable-panels';
 import type { UIState } from '@/types/ui';
+import { StackTrace } from '@/types';
 
 interface MainPanelProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -56,7 +57,7 @@ interface IframeProps {
 }
 
 export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayout = [75, 25], dockPosition = 'right' }) => {
-  const { setIsIframeLoaded, settingState, devtoolsState, setDevtoolsState, consoleDock, setConsoleDock } = UIStore();
+  const { setIsIframeLoaded, settingState, devtoolsState, setDevtoolsState, consoleDock, setConsoleDock, setProxyState, setDocsState, setColor } = UIStore();
   const [submittedUrl, setSubmittedUrl] = React.useState('');
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const devtoolsRef = React.useRef<HTMLIFrameElement>(null);
@@ -70,8 +71,6 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
   const isVertical = React.useMemo(() => consoleDock === 'bottom', [consoleDock]);
   const isReversed = React.useMemo(() => consoleDock === 'left', [consoleDock]);
 
-  // console.log(consoleMessageHistory.current);
-
   const reloadDevtool = React.useCallback(
     (force = false) => {
       if (force && devtoolsRef.current) {
@@ -80,11 +79,18 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
           if (devtoolsRef.current) {
             devtoolsRef.current.src = `/lib/devtools/elora-devtools#?embedded=${origin}`;
           }
+          setTimeout(() => {
+            if (devtoolsRef.current) {
+              consoleMessageHistory.current.forEach(data => {
+                devtoolsRef.current?.contentWindow?.postMessage(data, '*');
+              });
+            }
+          }, 500);
         }, 50);
       }
-      if (devtoolsRef.current) {
-        devtoolsRef.current.contentWindow?.location.reload();
+      if (!force && devtoolsRef.current) {
         consoleMessageHistory.current = [];
+        devtoolsRef.current.contentWindow?.location.reload();
       }
     },
     [origin]
@@ -105,6 +111,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
 
   const refreshFrame = React.useCallback(
     (realoadDevtool = true) => {
+      consoleMessageHistory.current = [];
       if (iframeRef.current) {
         iframeRef.current.src = 'about:blank';
         setTimeout(() => {
@@ -114,7 +121,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
         }, 50);
       }
       if (realoadDevtool) {
-        reloadDevtool();
+        reloadDevtool(true);
       }
       setIsIframeLoaded(false);
     },
@@ -141,6 +148,64 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
     const listener = (event: MessageEvent<{ type: string; data: string } | string>) => {
       if (typeof event.data === 'object' && 'type' in event.data && event.data.type === 'TO_DEVTOOLS' && devtoolsRef.current) {
         devtoolsRef.current.contentWindow?.postMessage(event.data.data, '*');
+      }
+
+      if (typeof event.data === 'object' && 'type' in event.data && 'stack' in event.data) {
+        const { type, stack } = event.data as { type: string; stack: StackTrace };
+        const data = event.data.data as unknown as unknown[];
+        switch (type) {
+          case 'debug': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs(type, data, stack)];
+            break;
+          }
+          case 'error': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs(type, data, stack)];
+            break;
+          }
+          case 'log': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs(type, data, stack)];
+            break;
+          }
+          case 'warning': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs(type, data, stack)];
+            break;
+          }
+          case 'info': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs(type, data, stack)];
+            break;
+          }
+          case 'trace': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs(type, data, stack)];
+            break;
+          }
+          case 'unhandledError': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs('error', data, stack)];
+            break;
+          }
+          case 'unhandledRejection': {
+            consoleMessageHistory.current = [...consoleMessageHistory.current, formatLogs('error', data, stack)];
+            break;
+          }
+        }
+      }
+
+      if (typeof event.data === 'object' && 'type' in event.data) {
+        const { type } = event.data;
+
+        switch (type) {
+          case 'open-console': {
+            setDevtoolsState(true);
+            break;
+          }
+          case 'open-proxy': {
+            setProxyState(true);
+            break;
+          }
+          case 'open-docs': {
+            setDocsState(true);
+            break;
+          }
+        }
       }
 
       if (typeof event.data === 'string' && event.data.includes('"id"') && isJson(event.data)) {
@@ -180,6 +245,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
 
     const handleUrlSubmit = (newUrl: string) => {
       if (isValidURL(newUrl) && newUrl !== submittedUrl) {
+        consoleMessageHistory.current = [];
         setSubmittedUrl(newUrl);
         setIsIframeLoaded(false);
         reloadDevtool(true);
@@ -195,6 +261,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
     };
 
     const handleColorChange = (color: string) => {
+      setColor(color);
       document.documentElement.style.setProperty('--primary', color);
       document.cookie = `__color=${color};path=/`;
       iframeRef.current?.contentWindow?.postMessage({ type: 'color:change', data: color }, '*');
@@ -212,7 +279,7 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       eventEmitter.removeListener('color:change', handleColorChange);
       window.removeEventListener('message', listener);
     };
-  }, [refreshFrame, submittedUrl, reloadDevtool, setIsIframeLoaded]);
+  }, [refreshFrame, submittedUrl, reloadDevtool, setIsIframeLoaded, setProxyState, setDocsState, setDevtoolsState, setColor]);
 
   const onDrag = React.useCallback(
     (isDragging: boolean) => {
@@ -231,6 +298,9 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
   );
 
   React.useEffect(() => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({ type: 'toggle:devtools', data: devtoolsState }, '*');
+    }
     if (devtoolsState) {
       const devtoolsPanel = getPanelElement('devtools');
       const devtoolsPanelWidth = devtoolsPanel?.offsetWidth;
@@ -265,11 +335,11 @@ export const Iframe: React.FC<IframeProps> = React.memo(({ notFound, defaultlayo
       />
     );
 
-    const devtoolsPanelElement = devtoolsState && (
+    const devtoolsPanelElement = devtoolsState && consoleDock !== 'popout' && (
       <DevtoolsPanel key="devtools" devtoolsRef={devtoolsRef} isMainIframeLoaded={isMainIframeLoaded} origin={origin} layout={layout} devtoolsPanelRef={devtoolsPanelRef} order={isReversed ? 0 : 1} />
     );
 
-    const handleElement = devtoolsState && <ResizableHandle key="handle" withHandle onDragging={onDrag} />;
+    const handleElement = devtoolsState && consoleDock !== 'popout' && <ResizableHandle key="handle" withHandle onDragging={onDrag} />;
 
     const panels = [mainPanelElement, handleElement, devtoolsPanelElement].filter(Boolean);
 

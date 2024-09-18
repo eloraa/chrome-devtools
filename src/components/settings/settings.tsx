@@ -18,7 +18,7 @@ import flower from './flower.png';
 import sad from './sad.png';
 
 export const Settings = () => {
-  const { settingState, setSettingState, proxyMode, setProxyMode, consoleDock, setConsoleDock, color, setColor } = UIStore();
+  const { settingState, setSettingState, proxyState, setProxyState, consoleDock, setConsoleDock, color, setColor } = UIStore();
   const handleOpenChange = (open: boolean) => {
     setSettingState(open);
     eventEmitter.emit('setting:toggle', open);
@@ -67,10 +67,10 @@ export const Settings = () => {
                     <p className="font-semibold text-red-500">Not available yet. :)</p>
                   </div>
                   <Toggle
-                    checked={proxyMode}
+                    checked={proxyState}
                     onChange={checked => {
                       if (typeof checked === 'boolean') {
-                        setProxyMode(checked);
+                        setProxyState(checked);
                       }
                     }}
                   />
@@ -125,8 +125,8 @@ export const Settings = () => {
               <div className="space-y-4 pb-10">
                 <h1 className="font-medium text-sm">
                   This simple debug tool debugs your website directly in the browser based on{' '}
-                  <a href="https://github.com/liriliri/chii" target="_blank">
-                    Chii
+                  <a href="https://github.com/liriliri/chobitsu" target="_blank">
+                    Chobitsu
                   </a>{' '}
                   and{' '}
                   <a href="https://chromium.googlesource.com/devtools/devtools-frontend" target="_blank">

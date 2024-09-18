@@ -20,7 +20,7 @@ import { UIStore } from '@/store';
 export function Dropdown({ children, className }: { children: React.ReactNode; className?: string }) {
   const [open, setOpen] = React.useState(false);
   const popoverRef = React.useRef<HTMLDivElement>(null);
-  const { setSettingState } = UIStore();
+  const { setSettingState, setDocsState } = UIStore();
 
   useClickOutside(popoverRef, () => setOpen(false));
 
@@ -55,7 +55,11 @@ export function Dropdown({ children, className }: { children: React.ReactNode; c
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setDocsState(true);
+            }}
+          >
             <File className="mr-2 h-4 w-4" />
             <span>Documentation</span>
           </DropdownMenuItem>

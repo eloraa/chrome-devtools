@@ -1,10 +1,15 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import './globals.css';
 import { Wrapper } from '@/components/wrapper/wrapper';
 import { headers } from 'next/headers';
 import { Settings } from '@/components/settings/settings';
+import { Docs } from '@/components/docs/docs';
+
+import './globals.css';
+import './markdown.css';
+import { COLORS } from '@/constant/colors';
+import { doc } from '@/components/docs/doc';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -22,7 +27,7 @@ export const metadata: Metadata = {
   description: 'A Browser Based Devtools made by Elora',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -35,8 +40,9 @@ export default function RootLayout({
   return (
     <html lang="en" style={{ '--primary': color?.split('=')[1] } as React.CSSProperties} className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
       <body>
-        <Wrapper>{children}</Wrapper>
+        <Wrapper color={color?.split('=')[1] ?? COLORS[0]}>{children}</Wrapper>
         <Settings />
+        <Docs docs={decodeURIComponent(doc)} />
       </body>
     </html>
   );

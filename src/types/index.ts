@@ -1,4 +1,4 @@
-export type LogType = 'log' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+export type LogType = 'log' | 'error' | 'warning' | 'info' | 'debug' | 'trace' | 'unhandledError' | 'unhandledRejection';
 
 export interface StackTrace {
   callFrames: {

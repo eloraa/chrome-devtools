@@ -6,10 +6,11 @@ import { UIStore } from '@/store';
 
 interface WrapperProps {
   children: React.ReactNode;
+  color: string;
 }
 
-export const Wrapper: React.FC<WrapperProps> = ({ children }) => {
-  const { settingState } = UIStore();
+export const Wrapper: React.FC<WrapperProps> = ({ children, color }) => {
+  const { settingState, setColor } = UIStore();
   const [loaded, setLoaded] = React.useState(false);
   const [isIframe, setIsIframe] = React.useState(false);
 
@@ -19,14 +20,19 @@ export const Wrapper: React.FC<WrapperProps> = ({ children }) => {
       window.location.href = 'https://sample-devtools.vercel.app/';
     }
 
+    if (color) {
+      setColor(color);
+    }
+
     window.addEventListener('message', event => {
       if (event.data.type === 'color:change') {
+        setColor(event.data.color);
         document.documentElement.style.setProperty('--primary', event.data.color);
         document.cookie = `__color=${event.data.color};path=/`;
       }
     });
     setLoaded(true);
-  }, [settingState]);
+  }, [settingState, setColor]);
 
   if (!loaded || isIframe) {
     return null;

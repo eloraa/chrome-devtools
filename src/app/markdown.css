@@ -1,0 +1,85 @@
+.markdown-body > *:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body h1 {
+  letter-spacing: -0.025rem;
+  font-weight: 500;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  line-height: 1.25;
+  font-size: 1.5rem;
+}
+
+.markdown-body h2 {
+  letter-spacing: -0.019rem;
+  font-weight: 500;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  line-height: 1.25;
+  font-size: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid hsl(var(--primary) / 0.2);
+}
+
+.markdown-body h3 {
+  letter-spacing: -0.019rem;
+  font-weight: 500;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  line-height: 1.25;
+  font-size: 1rem;
+}
+
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+.markdown-body pre {
+  overflow: auto;
+  font-size: 85%;
+  font-weight: 700;
+  color: hsl(var(--code-foreground));
+  line-height: 1.45;
+  background-color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--primary) / 0.4);
+  margin-bottom: 16px;
+}
+
+.markdown-body code {
+  font-weight: 500;
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: 'liga', 'calt';
+
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  white-space: break-spaces;
+  color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.2);
+  white-space: pre;
+}
+.markdown-body code *::selection,
+.markdown-body code::selection {
+  background-color: hsl(var(--primary));
+}
+
+.markdown-body pre code {
+  display: block;
+  padding: 14px;
+  background-color: transparent;
+  border: none;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  white-space: unset;
+  font-weight: inherit;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}

@@ -15,7 +15,7 @@ import { eventEmitter } from '@/lib/utils';
 import { useBreakpoints } from '@/lib/hooks';
 
 export const Header = () => {
-  const { setSettingState, setDevtoolsState, devtoolsState, proxyMode, setProxyMode } = UIStore();
+  const { setSettingState, setDevtoolsState, devtoolsState, proxyState, setProxyState } = UIStore();
   const breakpoint = useBreakpoints();
 
   return (
@@ -37,7 +37,7 @@ export const Header = () => {
               <>
                 <Tooltip delayDuration={100}>
                   <TooltipTrigger asChild>
-                    <Button variant={proxyMode ? 'default' : 'ghost'} className="w-6 h-6 p-1 text-foreground" onClick={() => setProxyMode(!proxyMode)}>
+                    <Button variant={proxyState ? 'default' : 'ghost'} className="w-6 h-6 p-1 text-foreground" onClick={() => setProxyState(!proxyState)}>
                       <Globe />
                     </Button>
                   </TooltipTrigger>
